@@ -64,14 +64,43 @@ def instructions2():
 # class for settings in place to initiate the game
 # such as knowing how many players and cards to deal
 class Settings(object):
-    def __init__(self, numOfPlayers, numOfCards):
-        self.numberOfPlayers = numOfPlayers
-        self.numberOfCards = numOfCards
+    def __init__(self, numOfPlayers, numOfCards, sound, difficulty):
+        self.settingNumberOfPlayers = numOfPlayers
+        self.settingNumberOfCards = numOfCards
+        self.settingSound = sound
+        self.settingDifficulty = difficulty
+
+    def getNumberOfPlayers(self):
+        return self.settingNumberOfPlayers
+
+    def getNumberOfCards(self):
+        return self.settingNumberOfCards
+
+    def getSound(self):
+        return self.settingSound
+
+    def getDifficulty(self):
+        return self.settingDifficulty
+class Game(object):
+    def __init__(self, Settings):
+        self.numberOfPlayers = Settings.getNumberOfPlayers()
+        self.numberOfCards = Settings.getNumberOfCards()
+        self.sound = Settings.getSound()
+        self.difficulty = Settings.getDifficulty()
+        self.players = [Player(self.numberOfCards) for i in range(self.numberOfPlayers)]
+
+        self.startGame()
 
 
-# class Game(object):
-#     def __init__(self, Deck, Settings):
+    def startGame(self):
+        self.gameDeck = Deck()
+        Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
 
+    def printHands(self):
+        for i in range(self.numberOfPlayers):
+            print(f"player {i} has")
+            for count in range(self.numberOfCards):
+                print(f"{self.players[i].printHand(count)}")
 
 # class for cards created via the deck Class
 # current functions include creating new deck
@@ -100,6 +129,16 @@ class Deck(object):
         for i in range(numOfCards):
             j = int(random() * i)
             self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
+    def dealTopCard(self):
+        cardsLeftCount = len(self.cards)
+        cardToreturn = self.cards[cardsLeftCount-1]
+        self.cards.pop(cardsLeftCount-1)
+        return cardToreturn
+
+    def dealCards(self, players, numberOfPlayers):
+            for i in range(numberOfPlayers):
+                players[i].getHand(self)
+
 
 
     def printDeck(self):
@@ -110,8 +149,18 @@ class Deck(object):
 # hand and the options the player has such as switching cards to start
 # the game, draw card, playcard and discard card
 class Player(object):
-    def __init__(self):
+    def __init__(self, cardCount):
         self.hand = []
+        self.NumberCards = cardCount
+
+    def getHand(self, deck):
+        for i in range(self.NumberCards):
+            self.hand.append(deck.dealTopCard())
+
+    def printHand(self, count):
+        # print(f"{self.hand[count]}")
+        for card in self.hand:
+            card.printCard()
     # def switchCard(self):
     #
     # def drawACard(self, deck):
@@ -133,14 +182,13 @@ class Player(object):
     # def putDownSequence(self):
 
 
+gameSettings = Settings(2, 8, "on", "easy")
+startGame = Game(gameSettings)
+startGame.printHands()
+
+startGame.gameDeck.printDeck()
 
 
-
-
-
-
-myDeck = Deck()
-myDeck.printDeck()
 if __name__ == '__main__':
     # webSite.debug = True
     main.run()
