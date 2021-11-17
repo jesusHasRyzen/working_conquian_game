@@ -62,13 +62,17 @@ def instructions2():
 #     return requests.get(urlImages).content
 
 # class for settings in place to initiate the game
-# such as knowing how many players and cards to deal
+# such as knowing how many players and cards to deal, sound on or off
+# as well as adding the difficulty level
 class Settings(object):
     def __init__(self, numOfPlayers, numOfCards, sound, difficulty):
         self.settingNumberOfPlayers = numOfPlayers
         self.settingNumberOfCards = numOfCards
         self.settingSound = sound
         self.settingDifficulty = difficulty
+
+# functions to get the number of players, number of cards , sound on or off,
+    # and difficulty in other classes or out of the scope of this class
 
     def getNumberOfPlayers(self):
         return self.settingNumberOfPlayers
@@ -81,6 +85,9 @@ class Settings(object):
 
     def getDifficulty(self):
         return self.settingDifficulty
+
+# class for initiating the game, with the settings being taken into account.
+# initiated the game with function startGame
 class Game(object):
     def __init__(self, Settings):
         self.numberOfPlayers = Settings.getNumberOfPlayers()
@@ -91,11 +98,11 @@ class Game(object):
 
         self.startGame()
 
-
+# function starts the game with a new deck, and deals the cards to the players.
     def startGame(self):
         self.gameDeck = Deck()
         Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
-
+# function to print the hands held by all the players, its debugging mechanism to help see where each card went
     def printHands(self):
         for i in range(self.numberOfPlayers):
             print(f"player {i} has")
@@ -113,6 +120,10 @@ class Card(object):
         self.suit = suit
     def printCard(self):
         print("{} of {}".format(self.value, self.suit))
+
+# class for the deck to be created. it initiates the deck and then shuffles it.
+# has a function to deal the top card of the deck to the next player and returns that card
+# has function to deal cards to players
 class Deck(object):
     def __init__(self):
         self.cards = []
@@ -129,17 +140,18 @@ class Deck(object):
         for i in range(numOfCards):
             j = int(random() * i)
             self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
+# function to deal the card on top of the deck
     def dealTopCard(self):
         cardsLeftCount = len(self.cards)
         cardToreturn = self.cards[cardsLeftCount-1]
         self.cards.pop(cardsLeftCount-1)
         return cardToreturn
-
+# function to deal all cards to initiate the game
     def dealCards(self, players, numberOfPlayers):
             for i in range(numberOfPlayers):
                 players[i].getHand(self)
 
-
+# printing function for debugging
 
     def printDeck(self):
         for card in self.cards:
