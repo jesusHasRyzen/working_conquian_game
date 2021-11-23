@@ -89,6 +89,10 @@ class Settings(object):
 # class for initiating the game, with the settings being taken into account.
 # initiated the game with function startGame
 class Game(object):
+    isGameWon = False
+    isGameTied =False
+    CardsSwitched = []
+
     def __init__(self, Settings):
         self.numberOfPlayers = Settings.getNumberOfPlayers()
         self.numberOfCards = Settings.getNumberOfCards()
@@ -102,25 +106,50 @@ class Game(object):
     def startGame(self):
         self.gameDeck = Deck()
         Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
+        self.playersSwitchCards()
+        # insert first draw here
+        while not(self.isGameWon or self.isGameTied):
+            # start with first player being able to pick up the first card or discarding
+            # then loop for second and so on players
+            for i in range(self.numberOfPlayers):
+                self.players[i].drawACard(self.gameDeck)
+    def playersSwitchCards(self):
+        self.playersSwitchCardsOut()
+        self.playersSwitchCardsIn()
+    def playersSwitchCardsOut(self):
+        for i in range(self.numberOfPlayers):
+            self.CardsSwitched.append(self.players[i].switchCardOut())
+    def playersSwitchCardsIn(self):
+        for i in range(self.numberOfPlayers):
+            j = i + 1
+            if(j == self.numberOfPlayers):
+                j = 0
+            self.players[j].switchCardIn(self.CardsSwitched[i])
+    # def checkIfPlayerHasWon(self):
+
 # function to print the hands held by all the players, its debugging mechanism to help see where each card went
     def printHands(self):
         for i in range(self.numberOfPlayers):
             print(f"player {i} has")
-            for count in range(self.numberOfCards):
-                print(f"{self.players[i].printHand(count)}")
+            # for count in range(self.numberOfCards):
+            # print(f"{self.players[i].printHand()}")
+            self.players[i].printHand()
+
 
 # class for cards created via the deck Class
 # current functions include creating new deck
 # shuffle deck and print the deck
 Suits = ["Clubs", "Spades", "Hearts", "Diamonds"]
-Values = ["Ace", 2, 3, 4, 5, 6, 7, "Jack", "Queen", "King"]
+Values = {"Ace":0, "2":1, "3":2, "4":3, "5":4, "6":5, "7":6, "Jack":7, "Queen":8, "King":9}
+
 class Card(object):
+    value = ""
+    suit = ""
     def __init__(self, value, suit):
         self.value = value
         self.suit = suit
     def printCard(self):
         print("{} of {}".format(self.value, self.suit))
-
 # class for the deck to be created. it initiates the deck and then shuffles it.
 # has a function to deal the top card of the deck to the next player and returns that card
 # has function to deal cards to players
@@ -168,30 +197,97 @@ class Player(object):
     def getHand(self, deck):
         for i in range(self.NumberCards):
             self.hand.append(deck.dealTopCard())
-
-    def printHand(self, count):
+    def returnCardAtPosition(self, position):
+        return self.hand[position]
+    def printHand(self):
         # print(f"{self.hand[count]}")
         for card in self.hand:
             card.printCard()
-    # def switchCard(self):
-    #
-    # def drawACard(self, deck):
-    # if needed :
-    #     putDownSequence()
-    # else:
-    #     discardCard()
+    def switchCardOut(self):
+        self.printHand()
+        positionToSwitch = input("enter position of card to Switch with Next Player:")
+        positionToSwitch = int(positionToSwitch)
+        positionToSwitch = positionToSwitch -1
+        switchCard = self.hand[positionToSwitch]
+
+        self.hand.pop(positionToSwitch)
+        return switchCard
+    def switchCardIn(self, card):
+        self.hand.append(card)
+    def drawACard(self, deck):
+        cardDrawn = deck.dealTopCard()
+        self.hand.append(cardDrawn)
+        self.printHand()
+        playerChoice = input("Do you wish to play card enter 1 or discard enter 0")
+        playerChoice = int(playerChoice)
+        if playerChoice:
+            cardsToPlay = self.selectCardsToPlay()
+            self.isPlayable(cardsToPlay)
+        else:
+            self.discardCard()
     # def passOnCard(self):
     #
     # def pickUpCard(self):
     #     playCardPickedUp()
     #
-    # def discardCard(self):
-    #
+    def discardCard(self):
+        card2Discard = self.hand[len(self.hand)-1]
+        self.hand.pop(len(self.hand)-1)
+        return card2Discard
     # def playCardPickedUp(self):
     #     putDownSequence()
     #     discardCard()
-    #
+    def selectCardsToPlay(self):
+        finishSelecting = False
+        cardsSelected = []
+        while (finishSelecting == False):
+            self.printHand()
+            positionSelected = int(input("enter position of card to play or 9 when finished"))
+            if positionSelected == 9:
+                cardsSelected.append(self.returnCardAtPosition(9-1))
+                finishSelecting = True
+            else:
+                cardsSelected.append(self.returnCardAtPosition(positionSelected))
+        return cardsSelected
     # def putDownSequence(self):
+    def isPlayable(self, Cards2Play):
+        if self.isSequencial(Cards2Play):
+            return True
+        # if arePairs(hand):
+        #     return True
+        # else:
+        #     return False
+    def isSequencial(self, Cards2Play):
+        values = []
+        suits = []
+        for cards in Cards2Play:
+            values.append(cards.value)
+            suits.append(cards.suit)
+        firstSuit = suits[0]
+        for suit in suits:
+            if firstSuit != suit:
+                return False
+        values = sorted(values)
+        startVal = values[0]
+        for i in range(len(Cards2Play)-1):
+            if values[i+1] == Values[startVal+1]:
+                continue
+            else:
+                return False
+        return True
+
+    def arePairs(self, Cards2Play):
+        values = []
+        suits = []
+        for cards in Cards2Play:
+            values.append(cards.value)
+            suits.append(cards.suit)
+        firstValue = values[0]
+        for value in values:
+            if firstValue != value:
+                return False
+        return True
+
 
 
 gameSettings = Settings(2, 8, "on", "easy")
