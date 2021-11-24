@@ -108,11 +108,32 @@ class Game(object):
         Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
         self.playersSwitchCards()
         # insert first draw here
+        discardCount = self.numberOfPlayers
+        cardDiscarded = Card
         while not(self.isGameWon or self.isGameTied):
             # start with first player being able to pick up the first card or discarding
             # then loop for second and so on players
             for i in range(self.numberOfPlayers):
-                self.players[i].drawACard(self.gameDeck)
+                if discardCount == self.numberOfPlayers:
+                    cardDiscarded = self.players[i].drawACard(self.gameDeck)
+                    discardCount = 1
+                    if self.players[i].hasWon():
+                        break
+                    continue
+                if self.players[i].pickUpCardOrNot(cardDiscarded):
+                    cardsToPlay = self.players[i].selectCardsToPlay()
+                    if self.players[i].isPlayable(cardsToPlay):
+                        self.players[i].playCards(cardsToPlay)
+                        if self.players[i].hasWon():
+                            break
+                else:
+                    discardCount = discardCount + 1
+                    if discardCount == self.numberOfPlayers:
+                        cardDiscarded = self.players[i].drawACard(self.gameDeck)
+                        discardCount = 1
+                        if self.players[i].hasWon():
+                            break
+                        continue
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
         self.playersSwitchCardsIn()
@@ -194,6 +215,16 @@ class Player(object):
         self.hand = []
         self.NumberCards = cardCount
 
+    def pickUpCardOrNot(self, card):
+        self.hand.append(card)
+        self.printHand()
+        playOrDiscardOption = int(input("Do you want to play (1) or Discard this card(0) :"))
+        if playOrDiscardOption:
+            return True
+        else:
+            self.discardCard()
+            return False
+
     def getHand(self, deck):
         for i in range(self.NumberCards):
             self.hand.append(deck.dealTopCard())
@@ -223,8 +254,14 @@ class Player(object):
         if playerChoice:
             cardsToPlay = self.selectCardsToPlay()
             self.isPlayable(cardsToPlay)
+            # for testing purposes
+            self.playCards(cardsToPlay)
+            for card in cardsToPlay:
+                if card in self.hand:
+                    self.hand.remove(card)
+            return self.discardCard()
         else:
-            self.discardCard()
+             return self.discardCard()
     # def passOnCard(self):
     #
     # def pickUpCard(self):
@@ -234,8 +271,14 @@ class Player(object):
         card2Discard = self.hand[len(self.hand)-1]
         self.hand.pop(len(self.hand)-1)
         return card2Discard
-    # def playCardPickedUp(self):
+    def playCards(self, cards2Play):
     #     putDownSequence()
+        for card in cards2Play:
+            card.printCard()
+            if card in self.hand:
+                self.hand.remove(card)
+
+
     #     discardCard()
     def selectCardsToPlay(self):
         finishSelecting = False
@@ -244,19 +287,19 @@ class Player(object):
             self.printHand()
             positionSelected = int(input("enter position of card to play or 9 when finished"))
             if positionSelected == 9:
-                cardsSelected.append(self.returnCardAtPosition(9-1))
+                cardsSelected.append(self.returnCardAtPosition(len(self.hand)-1))
                 finishSelecting = True
             else:
-                cardsSelected.append(self.returnCardAtPosition(positionSelected))
+                cardsSelected.append(self.returnCardAtPosition(positionSelected-1))
         return cardsSelected
     # def putDownSequence(self):
     def isPlayable(self, Cards2Play):
         if self.isSequencial(Cards2Play):
             return True
-        # if arePairs(hand):
-        #     return True
-        # else:
-        #     return False
+        if self.arePairs(Cards2Play):
+            return True
+        else:
+            return False
     def isSequencial(self, Cards2Play):
         values = []
         suits = []
@@ -287,7 +330,11 @@ class Player(object):
             if firstValue != value:
                 return False
         return True
-
+    def hasWon(self):
+        if not self.hand:
+            return True
+        else:
+            return False
 
 
 gameSettings = Settings(2, 8, "on", "easy")
