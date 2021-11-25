@@ -6,7 +6,6 @@ from random import random
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request
-import os
 
 
 
@@ -14,9 +13,6 @@ import json
 from base64 import decodebytes
 from PIL import Image
 from io import BytesIO
-
-# def clear_console():
-#     os.system('clear')
 
 # in the form of a string which will be added to the given url
 # used to look up quite honestly anything on wikipedia
@@ -127,7 +123,6 @@ class Game(object):
                     discardCount = 1
                     if self.players[i].hasWon():
                         break
-                    os.system('clear')
                     continue
                 if self.players[i].pickUpCardOrNot(cardDiscarded):
                     cardsToPlay = self.players[i].selectCardsToPlay()
@@ -135,7 +130,6 @@ class Game(object):
                         self.players[i].playCards(cardsToPlay)
                         if self.players[i].hasWon():
                             break
-                        os.system('clear')
                 else:
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
@@ -143,7 +137,6 @@ class Game(object):
                         discardCount = 1
                         if self.players[i].hasWon():
                             break
-                        os.system('clear')
                         continue
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
