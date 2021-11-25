@@ -6,10 +6,18 @@ from random import random
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request
+import os
+
+
+
 import json
 from base64 import decodebytes
 from PIL import Image
 from io import BytesIO
+
+# def clear_console():
+#     os.system('clear')
+
 # in the form of a string which will be added to the given url
 # used to look up quite honestly anything on wikipedia
 main = Flask(__name__)
@@ -119,6 +127,7 @@ class Game(object):
                     discardCount = 1
                     if self.players[i].hasWon():
                         break
+                    os.system('clear')
                     continue
                 if self.players[i].pickUpCardOrNot(cardDiscarded):
                     cardsToPlay = self.players[i].selectCardsToPlay()
@@ -126,6 +135,7 @@ class Game(object):
                         self.players[i].playCards(cardsToPlay)
                         if self.players[i].hasWon():
                             break
+                        os.system('clear')
                 else:
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
@@ -133,6 +143,7 @@ class Game(object):
                         discardCount = 1
                         if self.players[i].hasWon():
                             break
+                        os.system('clear')
                         continue
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
@@ -262,24 +273,18 @@ class Player(object):
             return self.discardCard()
         else:
              return self.discardCard()
-    # def passOnCard(self):
-    #
-    # def pickUpCard(self):
-    #     playCardPickedUp()
-    #
+
     def discardCard(self):
         card2Discard = self.hand[len(self.hand)-1]
         self.hand.pop(len(self.hand)-1)
         return card2Discard
     def playCards(self, cards2Play):
-    #     putDownSequence()
         for card in cards2Play:
             card.printCard()
             if card in self.hand:
                 self.hand.remove(card)
 
 
-    #     discardCard()
     def selectCardsToPlay(self):
         finishSelecting = False
         cardsSelected = []
@@ -303,6 +308,7 @@ class Player(object):
     def isSequencial(self, Cards2Play):
         values = []
         suits = []
+        intVal = []
         for cards in Cards2Play:
             values.append(cards.value)
             suits.append(cards.suit)
@@ -310,10 +316,16 @@ class Player(object):
         for suit in suits:
             if firstSuit != suit:
                 return False
-        values = sorted(values)
-        startVal = values[0]
+        for val in values:
+            intVal.append(Values.setdefault(val))
+
+        values = sorted(intVal)
+
         for i in range(len(Cards2Play)-1):
-            if values[i+1] == Values[startVal+1]:
+            compareVal = int(values[i])
+            tempFirst = int(values[i]) + 1
+            tempSecond = int(values[i+1])
+            if int(values[i])+1 == int(values[i+1]):
                 continue
             else:
                 return False
@@ -347,3 +359,4 @@ startGame.gameDeck.printDeck()
 if __name__ == '__main__':
     # webSite.debug = True
     main.run()
+
