@@ -128,6 +128,7 @@ class Game(object):
                     cardsToPlay = self.players[i].selectCardsToPlay()
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
+                        cardDiscarded = self.players[i].discardCardAt()
                         if self.players[i].hasWon():
                             break
                 else:
@@ -257,16 +258,23 @@ class Player(object):
         playerChoice = int(playerChoice)
         if playerChoice:
             cardsToPlay = self.selectCardsToPlay()
-            self.isPlayable(cardsToPlay)
+            if self.isPlayable(cardsToPlay):
             # for testing purposes
-            self.playCards(cardsToPlay)
-            for card in cardsToPlay:
-                if card in self.hand:
-                    self.hand.remove(card)
-            return self.discardCard()
+                self.playCards(cardsToPlay)
+# this section of the code is repeated in playCards function
+                # for card in cardsToPlay:
+                #     if card in self.hand:
+                #         self.hand.remove(card)
+                return self.discardCardAt()
         else:
              return self.discardCard()
 
+    def discardCardAt(self):
+        self.printHand()
+        positionOfCard2Discard = int(input("select position of Card to discard"))
+        card2Discard = self.hand[positionOfCard2Discard-1]
+        self.hand.pop(positionOfCard2Discard-1)
+        return card2Discard
     def discardCard(self):
         card2Discard = self.hand[len(self.hand)-1]
         self.hand.pop(len(self.hand)-1)
