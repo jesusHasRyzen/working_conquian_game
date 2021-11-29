@@ -111,14 +111,30 @@ class Table(object):
 
     def ViewTable(self, players, numberOfplayers):
         # for seats in range(self.numOfPlayerSlots):
+
         clear()
+        highestPlayedCards = 0
         amountIntent = 50 * numberOfplayers
         print("{:^{}}".format("Table 1", amountIntent))
         self.printPlayerSlots(numberOfplayers)
         for player in range(numberOfplayers):
-            # print("{:^50}".format("player {} table cards".format(player + 1)), end="")
-            # print
-            players[player].printPlayedCards()
+            self.cardsOnTable[player] = players[player].returnPlayedCards()
+            players[player].returnPlayedCards()
+            i  = player + 1
+            if player == (numberOfplayers-1):
+                break
+            if players[player].numberPlayedCards > highestPlayedCards:
+                highestPlayedCards = players[player].numberPlayedCards
+            if players[player].numberPlayedCards < players[i].numberPlayedCards:
+                highestPlayedCards = players[i].numberPlayedCards
+
+
+        for i in range(highestPlayedCards):
+            for player in range(numberOfplayers):
+                amountIntent = amountIntent + (amountIntent * player)
+                # print("{:^50}".format("player {} table cards".format(player + 1)), end="")
+                print("{:^{}}".format(self.cardsOnTable[player][i].printCard(), amountIntent), end="")
+                # have to fix print statement with cards to output in the correct format
         for i in range(10):
             print("")
     def printPlayerSlots(self, numberOfSlots):
@@ -127,7 +143,7 @@ class Table(object):
             amountIntent = amountIntent + (amountIntent*i)
             # print("{:^{}}".format("player {} table cards".format(i + 1, amountIntent+(amountIntent*i))), end="")
             print("{:^{}}".format("player {} table cards".format(i + 1), amountIntent), end="")
-
+        print("")
 class Game(object):
     isGameWon = False
     isGameTied =False
@@ -171,7 +187,7 @@ class Game(object):
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
                         cardDiscarded = self.players[i].discardCardAt()
-                        self.gameTable.ViewTable(self.players[i], i)
+                        self.gameTable.ViewTable(self.players, self.numberOfPlayers)
                         if self.players[i].hasWon():
                             break
                 else:
@@ -180,7 +196,7 @@ class Game(object):
                     if discardCount == self.numberOfPlayers:
                         cardDiscarded = self.players[i].drawACard(self.gameDeck)
                         discardCount = 1
-                        self.gameTable.ViewTable(self.players[i], i)
+                        self.gameTable.ViewTable(self.players, self.numberOfPlayers)
                         if self.players[i].hasWon():
                             break
                         continue
@@ -265,7 +281,7 @@ class Player(object):
         self.hand = []
         self.NumberCards = cardCount
         self.playedCards = []
-
+        self.numberPlayedCards = 0
     def pickUpCardOrNot(self, card):
         self.hand.append(card)
         self.printHand()
@@ -284,6 +300,8 @@ class Player(object):
     def printPlayedCards(self):
         for card in self.playedCards:
             card.printCard()
+    def returnPlayedCards(self):
+        return self.playedCards
     def printHand(self):
         # print(f"{self.hand[count]}")
         for card in self.hand:
@@ -332,7 +350,8 @@ class Player(object):
     def playCards(self, cards2Play):
         for card in cards2Play:
             self.playedCards.append(card)
-            card.printCard()
+            self.numberPlayedCards = self.numberPlayedCards + 1
+            # card.printCard()
             if card in self.hand:
                 self.hand.remove(card)
 
