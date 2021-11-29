@@ -1,4 +1,5 @@
 import base64
+import os
 
 from random import random
 
@@ -6,6 +7,9 @@ from random import random
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request
+
+from os import system, name
+
 
 
 
@@ -22,7 +26,8 @@ main = Flask(__name__)
 uname = ""
 images = ""
 
-
+def clear():
+    os.system('clear')
 
 @main.route('/')
 def instructions():
@@ -92,6 +97,37 @@ class Settings(object):
 
 # class for initiating the game, with the settings being taken into account.
 # initiated the game with function startGame
+class Table(object):
+    cardsOnTable = dict()
+    def __init__(self, numOfPlayers, numOfCards):
+        self.numOfPlayerSlots = numOfPlayers
+        self.numOfCards = numOfCards
+        # self.setTable(self.numOfPlayerSlots, self.numOfCards)
+    # def setTable(self, numOfSeats, numOfCards):
+        # for seats in range(numOfSeats):
+          # self.cardsOnTable[seats] = dict()       might not need it
+          # print("player {} table cards".format(seats+1))
+    # def addCardsToTable(self, player):
+
+    def ViewTable(self, players, numberOfplayers):
+        # for seats in range(self.numOfPlayerSlots):
+        clear()
+        amountIntent = 50 * numberOfplayers
+        print("{:^{}}".format("Table 1", amountIntent))
+        self.printPlayerSlots(numberOfplayers)
+        for player in range(numberOfplayers):
+            # print("{:^50}".format("player {} table cards".format(player + 1)), end="")
+            # print
+            players[player].printPlayedCards()
+        for i in range(10):
+            print("")
+    def printPlayerSlots(self, numberOfSlots):
+        amountIntent = 30
+        for i in range(numberOfSlots):
+            amountIntent = amountIntent + (amountIntent*i)
+            # print("{:^{}}".format("player {} table cards".format(i + 1, amountIntent+(amountIntent*i))), end="")
+            print("{:^{}}".format("player {} table cards".format(i + 1), amountIntent), end="")
+
 class Game(object):
     isGameWon = False
     isGameTied =False
@@ -108,34 +144,43 @@ class Game(object):
 
 # function starts the game with a new deck, and deals the cards to the players.
     def startGame(self):
+        self.gameTable = Table(self.numberOfPlayers, self.numberOfCards)
         self.gameDeck = Deck()
         Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
         self.playersSwitchCards()
         # insert first draw here
         discardCount = self.numberOfPlayers
         cardDiscarded = Card
+        clear()
         while not(self.isGameWon or self.isGameTied):
             # start with first player being able to pick up the first card or discarding
             # then loop for second and so on players
             for i in range(self.numberOfPlayers):
+                print("player {} Hand".format(i + 1))
                 if discardCount == self.numberOfPlayers:
                     cardDiscarded = self.players[i].drawACard(self.gameDeck)
                     discardCount = 1
+                    self.gameTable.ViewTable(self.players, self.numberOfPlayers)
+
                     if self.players[i].hasWon():
                         break
                     continue
                 if self.players[i].pickUpCardOrNot(cardDiscarded):
+                    print("player {} Hand".format(i + 1))
                     cardsToPlay = self.players[i].selectCardsToPlay()
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
                         cardDiscarded = self.players[i].discardCardAt()
+                        self.gameTable.ViewTable(self.players[i], i)
                         if self.players[i].hasWon():
                             break
                 else:
+                    print("player {} Hand".format(i + 1))
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
                         cardDiscarded = self.players[i].drawACard(self.gameDeck)
                         discardCount = 1
+                        self.gameTable.ViewTable(self.players[i], i)
                         if self.players[i].hasWon():
                             break
                         continue
@@ -219,6 +264,7 @@ class Player(object):
     def __init__(self, cardCount):
         self.hand = []
         self.NumberCards = cardCount
+        self.playedCards = []
 
     def pickUpCardOrNot(self, card):
         self.hand.append(card)
@@ -235,11 +281,15 @@ class Player(object):
             self.hand.append(deck.dealTopCard())
     def returnCardAtPosition(self, position):
         return self.hand[position]
+    def printPlayedCards(self):
+        for card in self.playedCards:
+            card.printCard()
     def printHand(self):
         # print(f"{self.hand[count]}")
         for card in self.hand:
             card.printCard()
     def switchCardOut(self):
+        clear()
         self.printHand()
         positionToSwitch = input("enter position of card to Switch with Next Player:")
         positionToSwitch = int(positionToSwitch)
@@ -281,6 +331,7 @@ class Player(object):
         return card2Discard
     def playCards(self, cards2Play):
         for card in cards2Play:
+            self.playedCards.append(card)
             card.printCard()
             if card in self.hand:
                 self.hand.remove(card)
