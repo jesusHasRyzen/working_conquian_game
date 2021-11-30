@@ -114,26 +114,39 @@ class Table(object):
 
         clear()
         highestPlayedCards = 0
+        numCardsPlayedByPlayer = []
         amountIntent = 50 * numberOfplayers
         print("{:^{}}".format("Table 1", amountIntent))
         self.printPlayerSlots(numberOfplayers)
         for player in range(numberOfplayers):
             self.cardsOnTable[player] = players[player].returnPlayedCards()
+            numCardsPlayedByPlayer.append(len(self.cardsOnTable[player]))
             players[player].returnPlayedCards()
             i  = player + 1
             if player == (numberOfplayers-1):
                 break
-            if players[player].numberPlayedCards > highestPlayedCards:
-                highestPlayedCards = players[player].numberPlayedCards
-            if players[player].numberPlayedCards < players[i].numberPlayedCards:
-                highestPlayedCards = players[i].numberPlayedCards
+            # if players[player].numberPlayedCards > highestPlayedCards:
+            #     highestPlayedCards = players[player].numberPlayedCards
+            # if players[player].numberPlayedCards < players[i].numberPlayedCards:
+            #     highestPlayedCards = players[i].numberPlayedCards
 
+        for i in range(len(numCardsPlayedByPlayer)):
+            if numCardsPlayedByPlayer[i] > highestPlayedCards:
+                highestPlayedCards = numCardsPlayedByPlayer[i]
 
         for i in range(highestPlayedCards):
+            print("")
             for player in range(numberOfplayers):
+                amountIntent = 50
                 amountIntent = amountIntent + (amountIntent * player)
                 # print("{:^50}".format("player {} table cards".format(player + 1)), end="")
-                print("{:^{}}".format(self.cardsOnTable[player][i].printCard(), amountIntent), end="")
+                if bool(self.cardsOnTable[player]):
+                    if len(self.cardsOnTable[player]) < i+1:
+                        continue
+                    # if len(self.cardsOnTable[player]) == highestPlayedCards:
+                    print("{:^{}}".format(self.cardsOnTable[player][i].getCard(), amountIntent), end="")
+                    # print("{:^{}}".format(self.cardsOnTable[player][i].getCard(), amountIntent), end="")
+                    # print("")
                 # have to fix print statement with cards to output in the correct format
         for i in range(10):
             print("")
@@ -148,6 +161,7 @@ class Game(object):
     isGameWon = False
     isGameTied =False
     CardsSwitched = []
+    cardsLeft = 0
 
     def __init__(self, Settings):
         self.numberOfPlayers = Settings.getNumberOfPlayers()
@@ -163,6 +177,7 @@ class Game(object):
         self.gameTable = Table(self.numberOfPlayers, self.numberOfCards)
         self.gameDeck = Deck()
         Deck.dealCards(self.gameDeck, self.players, self.numberOfPlayers)
+        self.cardsLeft = 40 - self.numberOfPlayers * self.numberOfCards
         self.playersSwitchCards()
         # insert first draw here
         discardCount = self.numberOfPlayers
@@ -172,9 +187,14 @@ class Game(object):
             # start with first player being able to pick up the first card or discarding
             # then loop for second and so on players
             for i in range(self.numberOfPlayers):
+
                 print("player {} Hand".format(i + 1))
                 if discardCount == self.numberOfPlayers:
                     cardDiscarded = self.players[i].drawACard(self.gameDeck)
+                    isGameWon = self.players[i].checkifWon()
+                    if isGameWon:
+                        break
+                    self.cardsLeft = self.cardsLeft -1
                     discardCount = 1
                     self.gameTable.ViewTable(self.players, self.numberOfPlayers)
 
@@ -186,6 +206,9 @@ class Game(object):
                     cardsToPlay = self.players[i].selectCardsToPlay()
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
+                        isGameWon = self.players[i].checkifWon()
+                        if isGameWon:
+                            break
                         cardDiscarded = self.players[i].discardCardAt()
                         self.gameTable.ViewTable(self.players, self.numberOfPlayers)
                         if self.players[i].hasWon():
@@ -195,11 +218,19 @@ class Game(object):
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
                         cardDiscarded = self.players[i].drawACard(self.gameDeck)
+                        isGameWon = self.players[i].checkifWon()
+                        if isGameWon:
+                            break
+                        self.cardsLeft = self.cardsLeft - 1
                         discardCount = 1
                         self.gameTable.ViewTable(self.players, self.numberOfPlayers)
                         if self.players[i].hasWon():
                             break
                         continue
+
+            if self.cardsLeft == 0:
+                self.isGameTied = True
+                print("Game is tied no winner!!!!")
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
         self.playersSwitchCardsIn()
@@ -237,6 +268,9 @@ class Card(object):
         self.suit = suit
     def printCard(self):
         print("{} of {}".format(self.value, self.suit))
+    def getCard(self):
+        cardToPrint = "{} of {}".format(self.value, self.suit)
+        return cardToPrint
 # class for the deck to be created. it initiates the deck and then shuffles it.
 # has a function to deal the top card of the deck to the next player and returns that card
 # has function to deal cards to players
@@ -354,6 +388,11 @@ class Player(object):
             # card.printCard()
             if card in self.hand:
                 self.hand.remove(card)
+    def checkifWon(self):
+        if len(self.hand) == 0:
+            return True
+        else:
+            return False
 
 
     def selectCardsToPlay(self):
