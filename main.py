@@ -2,7 +2,7 @@ import base64
 import os
 
 from random import random
-
+import csv
 
 import requests
 from bs4 import BeautifulSoup
@@ -20,47 +20,51 @@ from io import BytesIO
 
 # in the form of a string which will be added to the given url
 # used to look up quite honestly anything on wikipedia
-main = Flask(__name__)
-
+# main = Flask(__name__)
+columnNames = ["username", "pw", "wins", "losses", "ties"]
 
 uname = ""
 images = ""
 
 def clear():
     os.system('clear')
+def dataBase():
+    with open("ConquianUsers.csv", mode="w") as usersFile:
 
-@main.route('/')
-def instructions():
-    return render_template('index.html')
+        usersFileWriter = csv.DictWriter(usersFile, fieldnames=columnNames)
 
-
-
-
-@main.route('/loggedIN', methods = ['post'])
-def instructions2():
-    pws = request.form["psw"]
-    urlEncrypt = 'https://realpython-example-app2.herokuapp.com/?username='+pws
-    # returnFromRequest = requests.get(urlEncrypt)
-    # encryptPW = decode_to_string(returnFromRequest)
-    pws = requests.get(urlEncrypt).content
-    uname = request.form["uname"]
-
-
-    urlRules = 'https://team-anything-microservice.herokuapp.com/get_rules'
-    jsonresponse = requests.get(urlRules).json()
-    rules = jsonresponse['deal']
-    objective = jsonresponse['objective']
-    pack = jsonresponse['pack']
-    rank =  jsonresponse['rank']
-    score = jsonresponse['score']
-    link = jsonresponse['youtube']
-    urlImages = 'https://team-anything-microservice.herokuapp.com/get_images'
-    # images = requests.get(urlImages).json()
+# @main.route('/')
+# def instructions():
+#     return render_template('index.html')
+#
+#
+#
+#
+# @main.route('/loggedIN', methods = ['post'])
+# def instructions2():
+#     pws = request.form["psw"]
+#     urlEncrypt = 'https://realpython-example-app2.herokuapp.com/?username='+pws
+#     # returnFromRequest = requests.get(urlEncrypt)
+#     # encryptPW = decode_to_string(returnFromRequest)
+#     pws = requests.get(urlEncrypt).content
+#     uname = request.form["uname"]
+#
+#
+#     urlRules = 'https://team-anything-microservice.herokuapp.com/get_rules'
+#     jsonresponse = requests.get(urlRules).json()
+#     rules = jsonresponse['deal']
+#     objective = jsonresponse['objective']
+#     pack = jsonresponse['pack']
+#     rank =  jsonresponse['rank']
+#     score = jsonresponse['score']
+#     link = jsonresponse['youtube']
+#     urlImages = 'https://team-anything-microservice.herokuapp.com/get_images'
+#     # images = requests.get(urlImages).json()
     # byte_array = bytes(images)
     # images_decoded = base64.decodebytes(byte_array)
     # images_decoded = BytesIO(images_decoded)
 
-    return render_template("loggedIn.html", name = uname, rules = rules, objective = objective, pack = pack , rank = rank, score = score, link = link, pws = pws)
+    # return render_template("loggedIn.html", name = uname, rules = rules, objective = objective, pack = pack , rank = rank, score = score, link = link, pws = pws)
 
 # @main.route('/getImages')
 # def instructions3():
@@ -74,15 +78,100 @@ def instructions2():
 # such as knowing how many players and cards to deal, sound on or off
 # as well as adding the difficulty level
 class Settings(object):
+    playerName = ""
+    playerPw = ""
+
     def __init__(self, numOfPlayers, numOfCards, sound, difficulty):
         self.settingNumberOfPlayers = numOfPlayers
         self.settingNumberOfCards = numOfCards
         self.settingSound = sound
         self.settingDifficulty = difficulty
-
+        self.startSetUp()
+        self.canPlay = True
 # functions to get the number of players, number of cards , sound on or off,
     # and difficulty in other classes or out of the scope of this class
+    def startSetUp(self):
+        self.Welcome()
+        for i in range(self.settingNumberOfPlayers):
+            if self.loginORcreate():
+                self.userLogin()
+            else:
+                self.createUser()
+            print("Welcome {}".format(self.playerName))
 
+    def Welcome(self):
+        print("Welcome To Conquian")
+    def loginORcreate(self):
+
+        print("Are you already a member, Press 1 to login\nElse enter a 0 to create an Account")
+        print("Users must have an account to play Game")
+        response = int(input())
+        return response
+    def userLogin(self):
+        username = input("UserName:")
+        pw = input("Password")
+        verifyLogin = self.userExist(username, pw)
+        if not verifyLogin:
+            clear()
+            print("Please enter matching Username and Password")
+        # else:
+    #         call a function to call the microservice for the rules and print them out
+    #         for the user.
+    def createUser(self):
+        if self.verifyUsername():
+            self.verifyPW()
+            self.updateUsers()
+            clear()
+            self.userLogin()
+        clear()
+        print("Thanks for attempting to play")
+        self.canPlay = False
+
+    def updateUsers(self):
+        with open("ConquianUsers.csv", mode="w") as usersFile:
+            writer = csv.DictWriter(usersFile, fieldnames= columnNames)
+            writer.writerow({"username": self.playerName, "pw": self.playerPw})
+    def userExist(self, user, pW):
+        #if the user exist then return true else false
+        return True
+        return False
+
+
+
+    def verifyUsername(self):
+        verification = False
+        attempted = 0
+        while not verification:
+            if attempted:
+                print("please enter matching username")
+            print("if you wish to cancel enter 0")
+            username = input("Username: must be only characters").lower()
+            if username == "0":
+                break
+            usernameVerify = input("Verify Username: ").lower()
+            if username == usernameVerify:
+                self.playerName = username
+                verification = True
+                return verification
+            attempted = attempted + 1
+        return False
+    def verifyPW(self):
+        verification = False
+        attempted = 0
+        while not verification:
+            if attempted:
+                print("please enter matching password")
+            pw = input("Password: ").lower()
+            pwVerify = input("Verify Password: ").lower()
+            if pw == pwVerify:
+                self.playerPw = self.encryptPw(pw)
+                verification = True
+                print("Successfully Registered!!")
+            attempted = attempted + 1
+    def encryptPw(self, pws):
+        urlEncrypt = 'https://realpython-example-app2.herokuapp.com/?username='+pws
+        pws = requests.get(urlEncrypt).content
+        return pws
     def getNumberOfPlayers(self):
         return self.settingNumberOfPlayers
 
@@ -162,6 +251,7 @@ class Game(object):
     isGameTied =False
     CardsSwitched = []
     cardsLeft = 0
+    playerWinner = 0
 
     def __init__(self, Settings):
         self.numberOfPlayers = Settings.getNumberOfPlayers()
@@ -191,8 +281,9 @@ class Game(object):
                 print("player {} Hand".format(i + 1))
                 if discardCount == self.numberOfPlayers:
                     cardDiscarded = self.players[i].drawACard(self.gameDeck)
-                    isGameWon = self.players[i].checkifWon()
-                    if isGameWon:
+                    self.isGameWon = self.players[i].checkifWon()
+                    if self.isGameWon:
+                        self.playerWinner = i + 1
                         break
                     self.cardsLeft = self.cardsLeft -1
                     discardCount = 1
@@ -206,8 +297,9 @@ class Game(object):
                     cardsToPlay = self.players[i].selectCardsToPlay()
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
-                        isGameWon = self.players[i].checkifWon()
-                        if isGameWon:
+                        self.isGameWon = self.players[i].checkifWon()
+                        if self.isGameWon:
+                            self.playerWinner = i + 1
                             break
                         cardDiscarded = self.players[i].discardCardAt()
                         self.gameTable.ViewTable(self.players, self.numberOfPlayers)
@@ -218,8 +310,9 @@ class Game(object):
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
                         cardDiscarded = self.players[i].drawACard(self.gameDeck)
-                        isGameWon = self.players[i].checkifWon()
-                        if isGameWon:
+                        self.isGameWon = self.players[i].checkifWon()
+                        if self.isGameWon:
+                            self.playerWinner = i + 1
                             break
                         self.cardsLeft = self.cardsLeft - 1
                         discardCount = 1
@@ -227,10 +320,13 @@ class Game(object):
                         if self.players[i].hasWon():
                             break
                         continue
-
+            if self.isGameWon:
+                print("Game Winner is Player {}".format(self.playerWinner))
+                break
             if self.cardsLeft == 0:
                 self.isGameTied = True
                 print("Game is tied no winner!!!!")
+                break
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
         self.playersSwitchCardsIn()
@@ -372,6 +468,8 @@ class Player(object):
              return self.discardCard()
 
     def discardCardAt(self):
+        if len(self.hand) == 0:
+            return False
         self.printHand()
         positionOfCard2Discard = int(input("select position of Card to discard"))
         card2Discard = self.hand[positionOfCard2Discard-1]
@@ -461,12 +559,10 @@ class Player(object):
 
 gameSettings = Settings(2, 8, "on", "easy")
 startGame = Game(gameSettings)
-startGame.printHands()
-
-startGame.gameDeck.printDeck()
 
 
-if __name__ == '__main__':
-    # webSite.debug = True
-    main.run()
+
+# if __name__ == '__main__':
+#     # webSite.debug = True
+#     main.run()
 
