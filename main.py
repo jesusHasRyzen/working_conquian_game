@@ -5,6 +5,8 @@ from random import random
 import csv
 
 import requests
+from getpass import getpass
+import codecs
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request
 
@@ -33,53 +35,13 @@ def dataBase():
 
         usersFileWriter = csv.DictWriter(usersFile, fieldnames=columnNames)
 
-# @main.route('/')
-# def instructions():
-#     return render_template('index.html')
-#
-#
-#
-#
-# @main.route('/loggedIN', methods = ['post'])
-# def instructions2():
-#     pws = request.form["psw"]
-#     urlEncrypt = 'https://realpython-example-app2.herokuapp.com/?username='+pws
-#     # returnFromRequest = requests.get(urlEncrypt)
-#     # encryptPW = decode_to_string(returnFromRequest)
-#     pws = requests.get(urlEncrypt).content
-#     uname = request.form["uname"]
-#
-#
-#     urlRules = 'https://team-anything-microservice.herokuapp.com/get_rules'
-#     jsonresponse = requests.get(urlRules).json()
-#     rules = jsonresponse['deal']
-#     objective = jsonresponse['objective']
-#     pack = jsonresponse['pack']
-#     rank =  jsonresponse['rank']
-#     score = jsonresponse['score']
-#     link = jsonresponse['youtube']
-#     urlImages = 'https://team-anything-microservice.herokuapp.com/get_images'
-#     # images = requests.get(urlImages).json()
-    # byte_array = bytes(images)
-    # images_decoded = base64.decodebytes(byte_array)
-    # images_decoded = BytesIO(images_decoded)
 
-    # return render_template("loggedIn.html", name = uname, rules = rules, objective = objective, pack = pack , rank = rank, score = score, link = link, pws = pws)
-
-# @main.route('/getImages')
-# def instructions3():
-#     urlImages = 'https://team-anything-microservice.herokuapp.com/get_images'
-#
-#     # returnFromRequest = requests.get(urlEncrypt)
-#     # encryptPW = decode_to_string(returnFromRequest)
-#     return requests.get(urlImages).content
 
 # class for settings in place to initiate the game
 # such as knowing how many players and cards to deal, sound on or off
 # as well as adding the difficulty level
 class Settings(object):
     playerName = ""
-    playerPw = ""
 
     def __init__(self, numOfPlayers, numOfCards, sound, difficulty):
         self.settingNumberOfPlayers = numOfPlayers
@@ -93,11 +55,14 @@ class Settings(object):
     def startSetUp(self):
         self.Welcome()
         for i in range(self.settingNumberOfPlayers):
+            print("Player {} please login or create account".format(i+1))
             if self.loginORcreate():
                 self.userLogin()
             else:
                 self.createUser()
+            clear()
             print("Welcome {}".format(self.playerName))
+            print(self.getRules())
 
     def Welcome(self):
         print("Welcome To Conquian")
@@ -109,14 +74,22 @@ class Settings(object):
         return response
     def userLogin(self):
         username = input("UserName:")
-        pw = input("Password")
+        pw = getpass()
+        pw = self.encryptPw(pw)
         verifyLogin = self.userExist(username, pw)
         if not verifyLogin:
             clear()
             print("Please enter matching Username and Password")
+            response = int(input("Enter 1 to try again else enter 0 to stop :"))
+            if response:
+                self.userLogin()
+            else:
+                print("Please Create account in order to play")
+                self.createUser()
+        return True
+
         # else:
-    #         call a function to call the microservice for the rules and print them out
-    #         for the user.
+
     def createUser(self):
         if self.verifyUsername():
             self.verifyPW()
@@ -133,7 +106,15 @@ class Settings(object):
             writer.writerow({"username": self.playerName, "pw": self.playerPw})
     def userExist(self, user, pW):
         #if the user exist then return true else false
-        return True
+        with open("ConquianUsers.csv", mode='r') as usersFile:
+            usersFileReader = csv.DictReader(usersFile, fieldnames= columnNames)
+            for row in usersFileReader:
+                if row["username"] == user:
+                    pwFromCsv = row["pw"]
+                    pW = str(pW)
+                    if pwFromCsv == pW:
+                        self.playerName = row["username"]
+                        return True
         return False
 
 
@@ -161,10 +142,10 @@ class Settings(object):
         while not verification:
             if attempted:
                 print("please enter matching password")
-            pw = input("Password: ").lower()
-            pwVerify = input("Verify Password: ").lower()
+            pw = getpass()
+            pwVerify = getpass()
             if pw == pwVerify:
-                self.playerPw = self.encryptPw(pw)
+                self.playerPw = str(self.encryptPw(pw))
                 verification = True
                 print("Successfully Registered!!")
             attempted = attempted + 1
@@ -172,6 +153,17 @@ class Settings(object):
         urlEncrypt = 'https://realpython-example-app2.herokuapp.com/?username='+pws
         pws = requests.get(urlEncrypt).content
         return pws
+    def getRules(self):
+        urlRules = 'https://team-anything-microservice.herokuapp.com/get_rules'
+        jsonresponse = requests.get(urlRules).json()
+        rules = jsonresponse['deal']
+        objective = jsonresponse['objective']
+        pack = jsonresponse['pack']
+        rank =  jsonresponse['rank']
+        score = jsonresponse['score']
+        link = jsonresponse['youtube']
+        setOfRules = "Rules : {}\nObjective : {}\nPack : {}\nRank : {}\nScore : {}\nLink : {}".format(rules,objective,pack, rank, score,link)
+        return setOfRules
     def getNumberOfPlayers(self):
         return self.settingNumberOfPlayers
 
@@ -322,11 +314,14 @@ class Game(object):
                         continue
             if self.isGameWon:
                 print("Game Winner is Player {}".format(self.playerWinner))
+                # self.winnersNLoser()
                 break
             if self.cardsLeft == 0:
                 self.isGameTied = True
                 print("Game is tied no winner!!!!")
                 break
+     # def winnerNLoser(self):
+
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
         self.playersSwitchCardsIn()
