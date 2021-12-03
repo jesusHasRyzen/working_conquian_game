@@ -25,24 +25,22 @@ from io import BytesIO
 # main = Flask(__name__)
 columnNames = ["username", "pw", "wins", "losses", "ties"]
 
-uname = ""
-images = ""
+
 
 def clear():
     os.system('clear')
 def dataBase():
     with open("ConquianUsers.csv", mode="w") as usersFile:
-
         usersFileWriter = csv.DictWriter(usersFile, fieldnames=columnNames)
 
-
+playersInfo = []
 
 # class for settings in place to initiate the game
 # such as knowing how many players and cards to deal, sound on or off
 # as well as adding the difficulty level
 class Settings(object):
     playerName = ""
-
+    playersInfo = []
     def __init__(self, numOfPlayers, numOfCards, sound, difficulty):
         self.settingNumberOfPlayers = numOfPlayers
         self.settingNumberOfCards = numOfCards
@@ -101,9 +99,9 @@ class Settings(object):
         self.canPlay = False
 
     def updateUsers(self):
-        with open("ConquianUsers.csv", mode="w") as usersFile:
+        with open("ConquianUsers.csv", mode="a") as usersFile:
             writer = csv.DictWriter(usersFile, fieldnames= columnNames)
-            writer.writerow({"username": self.playerName, "pw": self.playerPw})
+            writer.writerow({"username": self.playerName, "pw": self.playerPw, "wins" : 0, "losses" : 0, "ties" : 0})
     def userExist(self, user, pW):
         #if the user exist then return true else false
         with open("ConquianUsers.csv", mode='r') as usersFile:
@@ -114,6 +112,7 @@ class Settings(object):
                     pW = str(pW)
                     if pwFromCsv == pW:
                         self.playerName = row["username"]
+                        self.playersInfo.append(row)
                         return True
         return False
 
@@ -129,12 +128,22 @@ class Settings(object):
             username = input("Username: must be only characters").lower()
             if username == "0":
                 break
+            if self.isNameUsed(username):
+                print("Username is used, choose a different name :")
+                self.verifyUsername()
             usernameVerify = input("Verify Username: ").lower()
             if username == usernameVerify:
                 self.playerName = username
                 verification = True
                 return verification
             attempted = attempted + 1
+        return False
+    def isNameUsed(self, user):
+        with open("ConquianUsers.csv", mode='r') as usersFile:
+            usersFileReader = csv.DictReader(usersFile, fieldnames= columnNames)
+            for row in usersFileReader:
+                if row["username"] == user:
+                    return True
         return False
     def verifyPW(self):
         verification = False
@@ -169,7 +178,8 @@ class Settings(object):
 
     def getNumberOfCards(self):
         return self.settingNumberOfCards
-
+    def getPlayersInfo(self):
+        return self.playersInfo
     def getSound(self):
         return self.settingSound
 
@@ -251,7 +261,7 @@ class Game(object):
         self.sound = Settings.getSound()
         self.difficulty = Settings.getDifficulty()
         self.players = [Player(self.numberOfCards) for i in range(self.numberOfPlayers)]
-
+        self.playersInfo = Settings.getPlayersInfo()
         self.startGame()
 
 # function starts the game with a new deck, and deals the cards to the players.
@@ -270,12 +280,15 @@ class Game(object):
             # then loop for second and so on players
             for i in range(self.numberOfPlayers):
 
-                print("player {} Hand".format(i + 1))
+                print("{}'s Hand".format(self.playersInfo[i].get("username")))
                 if discardCount == self.numberOfPlayers:
                     cardDiscarded = self.players[i].drawACard(self.gameDeck)
                     self.isGameWon = self.players[i].checkifWon()
                     if self.isGameWon:
-                        self.playerWinner = i + 1
+                        # self.playerWinner = i + 1
+                        break
+                    if cardDiscarded == self.gameDeck.getEmptyCard():
+                        self.isGameTied = True
                         break
                     self.cardsLeft = self.cardsLeft -1
                     discardCount = 1
@@ -285,26 +298,32 @@ class Game(object):
                         break
                     continue
                 if self.players[i].pickUpCardOrNot(cardDiscarded):
-                    print("player {} Hand".format(i + 1))
+                    # if cardDiscarded == self.gameDeck.getEmptyCard():
+                    #     self.isGameTied = True
+                    #     break
+                    print("{}'s Hand".format(self.playersInfo[i].get("username")))
                     cardsToPlay = self.players[i].selectCardsToPlay()
                     if self.players[i].isPlayable(cardsToPlay):
                         self.players[i].playCards(cardsToPlay)
                         self.isGameWon = self.players[i].checkifWon()
                         if self.isGameWon:
-                            self.playerWinner = i + 1
+                            # self.playerWinner = i + 1
                             break
                         cardDiscarded = self.players[i].discardCardAt()
                         self.gameTable.ViewTable(self.players, self.numberOfPlayers)
                         if self.players[i].hasWon():
                             break
                 else:
-                    print("player {} Hand".format(i + 1))
+                    print("{}'s Hand".format(self.playersInfo[i].get("username")))
                     discardCount = discardCount + 1
                     if discardCount == self.numberOfPlayers:
                         cardDiscarded = self.players[i].drawACard(self.gameDeck)
                         self.isGameWon = self.players[i].checkifWon()
                         if self.isGameWon:
-                            self.playerWinner = i + 1
+                            # self.playerWinner = i + 1
+                            break
+                        if cardDiscarded == self.gameDeck.getEmptyCard():
+                            self.isGameTied = True
                             break
                         self.cardsLeft = self.cardsLeft - 1
                         discardCount = 1
@@ -313,14 +332,35 @@ class Game(object):
                             break
                         continue
             if self.isGameWon:
-                print("Game Winner is Player {}".format(self.playerWinner))
+                print("Game Winner is Player {}".format(self.playersInfo[i].get("username")))
+                self.playersInfo[i]["wins"] = int(self.playersInfo[i].get("wins")) + 1
+
                 # self.winnersNLoser()
                 break
-            if self.cardsLeft == 0:
-                self.isGameTied = True
+            if self.isGameTied:
                 print("Game is tied no winner!!!!")
+                for player in self.playersInfo:
+                    player["ties"] = int(player.get("ties")) + 1
                 break
+        self.updateUsersInfo(self.playersInfo)
      # def winnerNLoser(self):
+    def updateUsersInfo(self, playersWL):
+        with open("ConquianUsers.csv", mode='r') as usersFileR:
+            usersFileReader = csv.DictReader(usersFileR, fieldnames= columnNames)
+            updatedPlayerInfo = []
+
+            for row in usersFileReader:
+                for i in range(len(playersWL)):
+                    if row["username"] == playersWL[i].get("username"):
+                        row["wins"] = playersWL[i].get("wins")
+                        row["losses"] = playersWL[i].get("losses")
+                        row["ties"] = playersWL[i].get("ties")
+                        updatedPlayerInfo.append(row)
+        with open("ConquianUsers.csv", mode="w") as usersFileW:
+            writer = csv.DictWriter(usersFileW, fieldnames=columnNames)
+            for rows in updatedPlayerInfo:
+                writer.writerow(rows)
+
 
     def playersSwitchCards(self):
         self.playersSwitchCardsOut()
@@ -370,6 +410,7 @@ class Deck(object):
         self.cards = []
         self.newDeck()
         self.shuffleDeck()
+        self.LastCard = Card("empty", "empty")
 
     def newDeck(self):
         for suit in Suits:
@@ -384,6 +425,8 @@ class Deck(object):
 # function to deal the card on top of the deck
     def dealTopCard(self):
         cardsLeftCount = len(self.cards)
+        if cardsLeftCount == 0:
+            return False
         cardToreturn = self.cards[cardsLeftCount-1]
         self.cards.pop(cardsLeftCount-1)
         return cardToreturn
@@ -397,7 +440,8 @@ class Deck(object):
     def printDeck(self):
         for card in self.cards:
             card.printCard()
-
+    def getEmptyCard(self):
+        return self.LastCard
 # class for the player where it initiates the player already having his
 # hand and the options the player has such as switching cards to start
 # the game, draw card, playcard and discard card
@@ -445,6 +489,9 @@ class Player(object):
         self.hand.append(card)
     def drawACard(self, deck):
         cardDrawn = deck.dealTopCard()
+        if not cardDrawn:
+            cardDrawn = deck.getEmptyCard()
+            return cardDrawn
         self.hand.append(cardDrawn)
         self.printHand()
         playerChoice = input("Do you wish to play card enter 1 or discard enter 0")
