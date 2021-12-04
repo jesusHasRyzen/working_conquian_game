@@ -1,3 +1,5 @@
+# Author Jesus Ponce
+# Completed by 12/3/21
 import os
 
 from random import random
